@@ -6,11 +6,11 @@ import cats.effect.*
 import dev.adumitrescu.jobsboard.config.*
 import dev.adumitrescu.jobsboard.config.syntax.*
 import dev.adumitrescu.jobsboard.http.HttpApi
-import dev.adumitrescu.jobsboard.http.routes.HealthRoutes
 import org.http4s.*
 import org.http4s.ember.server.EmberServerBuilder
 import pureconfig.ConfigSource
-import pureconfig.error.ConfigReaderException
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 /*
   1 - add a plain health endpoint to our app
@@ -20,10 +20,10 @@ import pureconfig.error.ConfigReaderException
 
 object Application extends IOApp.Simple {
 
-  val configSource = ConfigSource.default.load[EmberConfig]
+  implicit val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   override def run: IO[Unit] =
-    ConfigSource.default.loadF[IO,EmberConfig].flatMap { config =>
+    ConfigSource.default.loadF[IO, EmberConfig].flatMap { config =>
       EmberServerBuilder
         .default[IO]
         .withHost(config.host)

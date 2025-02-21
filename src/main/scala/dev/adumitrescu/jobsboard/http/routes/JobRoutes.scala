@@ -13,8 +13,9 @@ import org.http4s.server.*
 
 import java.util.UUID
 import scala.collection.mutable
+import org.typelevel.log4cats.Logger
 
-class JobRoutes[F[_]: Concurrent] private extends Http4sDsl[F] {
+class JobRoutes[F[_]: Concurrent: Logger] private extends Http4sDsl[F] {
   // database
   private val database = mutable.Map[UUID, Job]()
   // POST /jobs?offset=x&limit=y { filters } //TODO add query params and filter
@@ -33,33 +34,36 @@ class JobRoutes[F[_]: Concurrent] private extends Http4sDsl[F] {
 
   //POST /jobs/create { jobInfo }
   private def createJob(jobInfo: JobInfo): F[Job] =
-    Job (
+    Job(
       id = UUID.randomUUID(),
       date = System.currentTimeMillis(),
       ownerEmail = "user@adumitrescu.dev",
       jobInfo = jobInfo,
       active = true
     ).pure[F]
+  import dev.adumitrescu.jobsboard.logging.syntax.*
   private val createJobRoute: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ POST -> Root / "create" =>
       for {
-        jobInfo <- req.as[JobInfo]
-        job<- createJob(jobInfo)
+        jobInfo <- req.as[JobInfo].logError(e => s"Parsing payload failed: $e")
+        job <- createJob(jobInfo)
+        _ <- database.put(job.id, job).pure[F]
         resp <- Created(job.id)
       } yield resp
   }
 
   //PUT /jobs/uuid { jobInfo }
   private val updateJobRoute: HttpRoutes[F] = HttpRoutes.of[F] {
-    case req @ PUT -> Root / UUIDVar(id) => database.get(id) match {
-      case None => NotFound(FailureResponse(s"Job with id $id not found"))
-      case Some(job) =>
-        for {
-          jobInfo <- req.as[JobInfo]
-          _ <- database.put(id, job.copy(jobInfo = jobInfo)).pure[F]
-          resp <- Ok()
-        } yield resp
-    }
+    case req @ PUT -> Root / UUIDVar(id) =>
+      database.get(id) match {
+        case None => NotFound(FailureResponse(s"Job with id $id not found"))
+        case Some(job) =>
+          for {
+            jobInfo <- req.as[JobInfo]
+            _ <- database.put(id, job.copy(jobInfo = jobInfo)).pure[F]
+            resp <- Ok()
+          } yield resp
+      }
   }
 
   //DELETE /jobs/uuid
@@ -81,5 +85,5 @@ class JobRoutes[F[_]: Concurrent] private extends Http4sDsl[F] {
 }
 
 object JobRoutes {
-  def apply[F[_]: Concurrent] = new JobRoutes[F]
+  def apply[F[_]: Concurrent: Logger] = new JobRoutes[F]
 }
