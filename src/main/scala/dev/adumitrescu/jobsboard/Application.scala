@@ -5,6 +5,7 @@ import cats.implicits.*
 import cats.effect.*
 import dev.adumitrescu.jobsboard.config.*
 import dev.adumitrescu.jobsboard.config.syntax.*
+import dev.adumitrescu.jobsboard.http.HttpApi
 import dev.adumitrescu.jobsboard.http.routes.HealthRoutes
 import org.http4s.*
 import org.http4s.ember.server.EmberServerBuilder
@@ -27,7 +28,7 @@ object Application extends IOApp.Simple {
         .default[IO]
         .withHost(config.host)
         .withPort(config.port)
-        .withHttpApp(HealthRoutes[IO].routes.orNotFound)
+        .withHttpApp(HttpApi[IO].endpoints.orNotFound)
         .build
         .use(_ => IO.println("Server ready") *> IO.never)
     }
