@@ -3,7 +3,6 @@ package dev.adumitrescu.jobsboard.http.routes
 import cats.Monad
 import org.http4s.*
 import org.http4s.dsl.*
-import org.http4s.dsl.impl.*
 import org.http4s.server.*
 
 class HealthRoutes[F[_]: Monad] private extends Http4sDsl[F] {
