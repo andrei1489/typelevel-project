@@ -25,7 +25,7 @@ object Application extends IOApp.Simple {
   override def run: IO[Unit] =
     ConfigSource.default.loadF[IO, EmberConfig].flatMap { config =>
       val appResource = for {
-        core <- Core[IO]
+        core    <- Core[IO]
         httpApi <- HttpApi[IO](core)
         server <- EmberServerBuilder
           .default[IO]
@@ -34,7 +34,7 @@ object Application extends IOApp.Simple {
           .withHttpApp(httpApi.endpoints.orNotFound)
           .build
       } yield server
-      appResource.use (_ => IO.println("Server Ready") *> IO.never)
+      appResource.use(_ => IO.println("Server Ready") *> IO.never)
     }
 
 }
