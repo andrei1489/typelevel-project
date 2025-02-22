@@ -5,7 +5,7 @@ import cats.implicits.*
 import cats.effect.*
 import dev.adumitrescu.jobsboard.config.*
 import dev.adumitrescu.jobsboard.config.syntax.*
-import dev.adumitrescu.jobsboard.http.HttpApi
+import dev.adumitrescu.jobsboard.modules.*
 import org.http4s.*
 import org.http4s.ember.server.EmberServerBuilder
 import pureconfig.ConfigSource
@@ -24,13 +24,17 @@ object Application extends IOApp.Simple {
 
   override def run: IO[Unit] =
     ConfigSource.default.loadF[IO, EmberConfig].flatMap { config =>
-      EmberServerBuilder
-        .default[IO]
-        .withHost(config.host)
-        .withPort(config.port)
-        .withHttpApp(HttpApi[IO].endpoints.orNotFound)
-        .build
-        .use(_ => IO.println("Server ready") *> IO.never)
+      val appResource = for {
+        core <- Core[IO]
+        httpApi <- HttpApi[IO](core)
+        server <- EmberServerBuilder
+          .default[IO]
+          .withHost(config.host)
+          .withPort(config.port)
+          .withHttpApp(httpApi.endpoints.orNotFound)
+          .build
+      } yield server
+      appResource.use (_ => IO.println("Server Ready") *> IO.never)
     }
 
 }

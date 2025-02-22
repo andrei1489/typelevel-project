@@ -20,25 +20,7 @@ trait Jobs[F[_]] {
   def update(id: UUID, jobInfo: JobInfo): F[Option[Job]]
   def delete(id: UUID): F[Int]
 }
-/*
-date: Long,
-ownerEmail: String,
-company: String,
-title: String,
-description: String,
-externalUrl: String,
-remote: Boolean,
-localtion: String,
-salaryLo: Option[Int],
-salaryHigh: Option[Int],
-currency: Option[String],
-country: Option[String],
-tags: Option[List[String]],
-image: Option[String],
-seniority: Option[String],
-other: Option[String])
-active: Boolean
- */
+
 class LiveJobs[F[_]: MonadCancelThrow] private (xa: Transactor[F])
     extends Jobs[F] {
   override def create(ownerEmail: String, jobInfo: JobInfo): F[UUID] =
@@ -51,7 +33,7 @@ class LiveJobs[F[_]: MonadCancelThrow] private (xa: Transactor[F])
           description,
           externalUrl,
           remote,
-          localtion,
+          location,
           salaryLo,
           salaryHigh,
           currency,
@@ -69,7 +51,7 @@ class LiveJobs[F[_]: MonadCancelThrow] private (xa: Transactor[F])
          ${jobInfo.description},
          ${jobInfo.externalUrl},
          ${jobInfo.remote},
-         ${jobInfo.localtion},
+         ${jobInfo.location},
          ${jobInfo.salaryLo},
          ${jobInfo.salaryHigh},
          ${jobInfo.currency},
@@ -94,7 +76,7 @@ class LiveJobs[F[_]: MonadCancelThrow] private (xa: Transactor[F])
          description,
          externalUrl,
          remote,
-         localtion,
+         location,
          salaryLo,
          salaryHigh,
          currency,
@@ -113,14 +95,14 @@ class LiveJobs[F[_]: MonadCancelThrow] private (xa: Transactor[F])
     sql"""
               SELECT
               id,
-              date
+              date,
               ownerEmail,
               company,
               title,
               description,
               externalUrl,
               remote,
-              localtion,
+              location,
               salaryLo,
               salaryHigh,
               currency,
@@ -141,7 +123,7 @@ class LiveJobs[F[_]: MonadCancelThrow] private (xa: Transactor[F])
          description = ${jobInfo.description},
          externalUrl = ${jobInfo.externalUrl},
          remote = ${jobInfo.remote},
-         localtion = ${jobInfo.localtion},
+         location = ${jobInfo.location},
          salaryLo = ${jobInfo.salaryLo},
          salaryHigh = ${jobInfo.salaryHigh},
          currency = ${jobInfo.currency},
