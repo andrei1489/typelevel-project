@@ -3,8 +3,10 @@ package dev.adumitrescu.jobsboard.http.routes
 import cats.effect.*
 import cats.implicits.*
 import cats.effect.testing.scalatest.AsyncIOSpec
+import dev.adumitrescu.jobsboard.config.PaginationConfig
 import dev.adumitrescu.jobsboard.core.Jobs
-import dev.adumitrescu.jobsboard.domain.job.{Job, JobInfo}
+import dev.adumitrescu.jobsboard.domain.job.*
+import dev.adumitrescu.jobsboard.domain.pagination.Pagination
 import dev.adumitrescu.jobsboard.fixtures.JobFixture
 import io.circe.generic.auto.*
 import org.http4s.circe.CirceEntityCodec.*
@@ -30,6 +32,10 @@ class JobRoutesSpec
     override def create(ownerEmail: String, jobInfo: JobInfo): IO[UUID] = IO.pure(NewJobUuid)
 
     override def all(): IO[List[Job]] = IO.pure(List(AwesomeJob))
+    override def all(filter: JobFilter, paginatition: Pagination): IO[List[Job]] = {
+      if (filter.remote) IO.pure(List())
+      else IO.pure(List(AwesomeJob))
+    }
 
     override def findById(id: UUID): IO[Option[Job]] =
       if (id == AwesomeJobUuid) IO.pure(Some(AwesomeJob))
@@ -44,7 +50,7 @@ class JobRoutesSpec
       else IO.pure(0)
   }
   implicit val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  val jobsRoutes: HttpRoutes[IO]  = JobRoutes[IO](jobs).routes
+  val jobsRoutes: HttpRoutes[IO]  = JobRoutes[IO](jobs, PaginationConfig()).routes
 
   "JobRoutes" - {
     "should return a job with a given id" in {
@@ -68,6 +74,7 @@ class JobRoutesSpec
         // simulate an HTTP request
         response <- jobsRoutes.orNotFound.run(
           Request(method = Method.POST, uri = uri"/jobs")
+            .withEntity(JobFilter())
         )
         // get http response
         retrieved <- response.as[List[Job]]
@@ -75,6 +82,22 @@ class JobRoutesSpec
       } yield {
         response.status shouldBe Status.Ok
         retrieved shouldBe List(AwesomeJob)
+      }
+    }
+    "should return all jobs that satisfy a filter" in {
+      // code under test
+      for {
+        // simulate an HTTP request
+        response <- jobsRoutes.orNotFound.run(
+          Request(method = Method.POST, uri = uri"/jobs")
+            .withEntity(JobFilter(remote=true))
+        )
+        // get http response
+        retrieved <- response.as[List[Job]]
+
+      } yield {
+        response.status shouldBe Status.Ok
+        retrieved shouldBe List()
       }
     }
     "should create a new job" in {
